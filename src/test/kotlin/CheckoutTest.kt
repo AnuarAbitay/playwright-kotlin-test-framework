@@ -13,7 +13,7 @@ class CheckoutTest {
 
     @Test
     @DisplayName("Complete checkout for a single product")
-    fun `complete checkout for a single product`(page: Page) {
+    fun singleProductCheckout(page: Page) {
         loginAsStandardUser(page)
             .addProductToCartByName("Sauce Labs Backpack")
             .goToCart()
@@ -27,7 +27,7 @@ class CheckoutTest {
 
     @Test
     @DisplayName("Complete checkout for multiple products")
-    fun `complete checkout for multiple products`(page: Page) {
+    fun multipleProductsCheckout(page: Page) {
         loginAsStandardUser(page)
             .addProductToCartByName("Sauce Labs Backpack")
             .addProductToCartByName("Sauce Labs Onesie")
@@ -42,7 +42,7 @@ class CheckoutTest {
 
     @Test
     @DisplayName("Checkout fails without filling form")
-    fun `checkout fails without filling form`(page: Page) {
+    fun checkoutEmptyForm(page: Page) {
         loginAsStandardUser(page)
             .addProductToCartByName("Sauce Labs Bike Light")
             .goToCart()
@@ -53,7 +53,7 @@ class CheckoutTest {
 
     @Test
     @DisplayName("Remove item from cart before checkout")
-    fun `remove item from cart before checkout`(page: Page) {
+    fun removeItemBeforeCheckout(page: Page) {
         loginAsStandardUser(page)
             .addProductToCartByName("Sauce Labs Backpack")
             .addProductToCartByName("Sauce Labs Bike Light")
@@ -66,7 +66,7 @@ class CheckoutTest {
 
     @Test
     @DisplayName("Back to products from checkout complete")
-    fun `back to products from checkout complete`(page: Page) {
+    fun backToProductsAfterCheckout(page: Page) {
         loginAsStandardUser(page)
             .addProductToCartByName("Sauce Labs Onesie")
             .goToCart()

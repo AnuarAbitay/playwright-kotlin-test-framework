@@ -8,7 +8,7 @@ class LoginTest {
 
     @Test
     @DisplayName("Successful login with standard user")
-    fun `successful login with standard user`(page: Page) {
+    fun successfulLogin(page: Page) {
         LoginPage(page)
             .open()
             .login("standard_user", "secret_sauce")
@@ -17,7 +17,7 @@ class LoginTest {
 
     @Test
     @DisplayName("Login fails with locked out user")
-    fun `login fails with locked out user`(page: Page) {
+    fun lockedOutUser(page: Page) {
         LoginPage(page)
             .open()
             .loginExpectingError("locked_out_user", "secret_sauce")
@@ -26,7 +26,7 @@ class LoginTest {
 
     @Test
     @DisplayName("Login fails with invalid credentials")
-    fun `login fails with invalid credentials`(page: Page) {
+    fun invalidCredentials(page: Page) {
         LoginPage(page)
             .open()
             .loginExpectingError("invalid_user", "wrong_password")
@@ -35,7 +35,7 @@ class LoginTest {
 
     @Test
     @DisplayName("Login fails with empty credentials")
-    fun `login fails with empty credentials`(page: Page) {
+    fun emptyCredentials(page: Page) {
         LoginPage(page)
             .open()
             .loginExpectingError("", "")

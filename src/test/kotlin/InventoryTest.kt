@@ -13,14 +13,14 @@ class InventoryTest {
 
     @Test
     @DisplayName("Inventory page displays 6 products")
-    fun `inventory page displays 6 products`(page: Page) {
+    fun productCount(page: Page) {
         loginAsStandardUser(page)
             .shouldHaveProductCount(6)
     }
 
     @Test
     @DisplayName("Add product to cart updates badge count")
-    fun `add product to cart updates badge count`(page: Page) {
+    fun addToCart(page: Page) {
         loginAsStandardUser(page)
             .addProductToCartByName("Sauce Labs Backpack")
             .shouldHaveCartBadge(1)
@@ -28,7 +28,7 @@ class InventoryTest {
 
     @Test
     @DisplayName("Add multiple products and verify badge count")
-    fun `add multiple products and verify badge count`(page: Page) {
+    fun addMultipleToCart(page: Page) {
         loginAsStandardUser(page)
             .addProductToCartByName("Sauce Labs Backpack")
             .addProductToCartByName("Sauce Labs Bike Light")
@@ -38,7 +38,7 @@ class InventoryTest {
 
     @Test
     @DisplayName("Remove product from cart decreases badge count")
-    fun `remove product from cart decreases badge count`(page: Page) {
+    fun removeFromCart(page: Page) {
         loginAsStandardUser(page)
             .addProductToCartByName("Sauce Labs Backpack")
             .addProductToCartByName("Sauce Labs Bike Light")
@@ -48,7 +48,7 @@ class InventoryTest {
 
     @Test
     @DisplayName("Sort products by price low to high")
-    fun `sort products by price low to high`(page: Page) {
+    fun sortByPriceAsc(page: Page) {
         loginAsStandardUser(page)
             .sortBy("lohi")
             .shouldHavePricesSortedAsc()
@@ -56,7 +56,7 @@ class InventoryTest {
 
     @Test
     @DisplayName("Sort products by name Z to A")
-    fun `sort products by name Z to A`(page: Page) {
+    fun sortByNameDesc(page: Page) {
         loginAsStandardUser(page)
             .sortBy("za")
             .shouldHaveNamesSortedDesc()
