@@ -1,14 +1,19 @@
 package extensions
 
+import com.microsoft.playwright.Browser
+import com.microsoft.playwright.BrowserContext
 import com.microsoft.playwright.BrowserType
+import com.microsoft.playwright.Page
+import com.microsoft.playwright.Page.ScreenshotOptions
 import com.microsoft.playwright.Playwright
 import config.TestConfig
 import context.PageHolder
 import context.PlaywrightHolder
 import data.enums.BrowserEngine.*
 import io.github.oshai.kotlinlogging.KotlinLogging.logger
+import io.qameta.allure.Allure.addAttachment
 import org.junit.jupiter.api.extension.*
-import java.util.Optional
+import java.util.*
 
 class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver, TestWatcher {
     private val logger = logger(this::class.java.name)
@@ -56,6 +61,11 @@ class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCall
     // --- TestWatcher ---
 
     override fun testFailed(context: ExtensionContext, cause: Throwable?) {
+        val pageHolder = context.getStore(NAMESPACE).get(PAGE_KEY, PageHolder::class.java)
+        pageHolder?.let {
+            val screenshot = it.page.screenshot(ScreenshotOptions().setFullPage(true))
+            addAttachment("Screenshot on failure", "image/png", screenshot.inputStream(), "png")
+        }
         logger.warn { "Test failed: ${context.displayName} — ${cause?.message}" }
     }
 
@@ -74,9 +84,9 @@ class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCall
         parameterContext: ParameterContext,
         extensionContext: ExtensionContext
     ): Any = when (parameterContext.parameter.type) {
-        com.microsoft.playwright.Page::class.java -> getPageHolder(extensionContext).page
-        com.microsoft.playwright.BrowserContext::class.java -> getPageHolder(extensionContext).context
-        com.microsoft.playwright.Browser::class.java -> getBrowserHolder(extensionContext).browser
+        Page::class.java -> getPageHolder(extensionContext).page
+        BrowserContext::class.java -> getPageHolder(extensionContext).context
+        Browser::class.java -> getBrowserHolder(extensionContext).browser
         else -> throw ParameterResolutionException("Unsupported: ${parameterContext.parameter.type}")
     }
 
@@ -89,8 +99,8 @@ class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCall
         context.getStore(NAMESPACE).get(PAGE_KEY, PageHolder::class.java)
 
     private val supportedTypes = setOf(
-        com.microsoft.playwright.Page::class.java,
-        com.microsoft.playwright.BrowserContext::class.java,
-        com.microsoft.playwright.Browser::class.java
+        Page::class.java,
+        BrowserContext::class.java,
+        Browser::class.java
     )
 }
