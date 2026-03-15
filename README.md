@@ -10,7 +10,8 @@ Designed for clean architecture, easy maintenance, and fast parallel execution.
 |------|---------|
 | Kotlin 2.2 | Primary language |
 | Playwright 1.55 | Browser automation |
-| JUnit 5.13 | Test runner & lifecycle |
+| JUnit 5.11 | Test runner & lifecycle |
+| Allure 2.29 | Test reporting |
 | AssertJ 3.27 | Fluent assertions |
 | Kotlin-logging + Logback | Structured logging |
 | Gradle (Kotlin DSL) | Build system |
@@ -33,11 +34,22 @@ src/
 │   │   └── PlaywrightExtension.kt     # JUnit 5 extension — full lifecycle management
 │   └── pages/
 │       ├── BasePage.kt                # Base page with reusable actions & assertions
-│       └── LoginPage.kt              # Example page object
-└── test/resources/
-    ├── META-INF/services/
-    │   └── ...Extension               # Auto-registration via ServiceLoader
-    └── junit-platform.properties      # Enables extension auto-detection
+│       ├── LoginPage.kt              # Login page
+│       ├── InventoryPage.kt          # Product catalog page
+│       ├── CartPage.kt               # Shopping cart page
+│       ├── CheckoutStepOnePage.kt    # Checkout form page
+│       ├── CheckoutStepTwoPage.kt    # Checkout overview page
+│       └── CheckoutCompletePage.kt   # Order confirmation page
+└── test/
+    ├── kotlin/
+    │   ├── LoginTest.kt               # Login scenarios (4 tests)
+    │   ├── InventoryTest.kt           # Catalog & cart scenarios (8 tests)
+    │   └── CheckoutTest.kt            # E2E checkout scenarios (5 tests)
+    └── resources/
+        ├── META-INF/services/
+        │   └── ...Extension            # Auto-registration via ServiceLoader
+        ├── allure.properties           # Allure results directory config
+        └── junit-platform.properties   # Enables extension auto-detection
 ```
 
 ## Key Design Decisions
@@ -49,32 +61,41 @@ The framework uses JUnit 5's **ServiceLoader** mechanism instead of `@ExtendWith
 - `junit-platform.properties` enables `junit.jupiter.extensions.autodetection.enabled = true`
 - `META-INF/services/org.junit.jupiter.api.extension.Extension` registers `PlaywrightExtension` globally
 
-This means **every test class automatically gets browser lifecycle management** — no boilerplate annotations needed.
+Every test class automatically gets browser lifecycle management — no boilerplate annotations needed.
 
 ### Two-Level Lifecycle Management
 
-`PlaywrightExtension` implements `BeforeAllCallback`, `BeforeEachCallback`, `ParameterResolver`, and `TestWatcher`:
+`PlaywrightExtension` implements `BeforeAllCallback`, `BeforeEachCallback`, `AfterEachCallback`, `ParameterResolver`, and `TestWatcher`:
 
 - **Class-level** (`PlaywrightHolder`) — Playwright instance + Browser created once per test class, stored in JUnit's `ExtensionContext.Store`, auto-closed via `AutoCloseable`
-- **Method-level** (`PageHolder`) — fresh `BrowserContext` + `Page` for each test, ensuring full isolation
+- **Method-level** (`PageHolder`) — fresh `BrowserContext` + `Page` for each test, ensuring full isolation. Explicitly closed in `afterEach` for immediate resource cleanup
 - **Parameter injection** — tests receive `Page`, `BrowserContext`, or `Browser` directly as method parameters
+- **Screenshot on failure** — automatic full-page screenshot attached to Allure report when a test fails
 
-### Page Object Pattern
+### Page Object Pattern with Fluent Assertions
 
-`BasePage` provides a clean DSL for common operations:
+All assertions are encapsulated inside Page Objects — tests contain zero `assertThat` calls:
 
-- **Navigation**: `open()`, `currentUrl()`, `title()`
-- **Locators**: CSS selectors, text, ARIA roles, test IDs
-- **Actions**: `click()`, `fill()`, `getText()`, `isVisible()`
-- **Waits**: `waitForVisible()`, `waitForHidden()`, `waitForUrl()`
-- **Assertions**: `shouldBeVisible()`, `shouldHaveText()`, `shouldContainText()`, `shouldHaveUrl()`
+```kotlin
+loginAsStandardUser(page)
+    .addProductToCartByName("Sauce Labs Backpack")
+    .goToCart()
+    .shouldHaveItemCount(1)
+    .checkout()
+    .fillForm("John", "Doe", "12345")
+    .continueToOverview()
+    .finish()
+    .shouldShowOrderConfirmation()
+```
+
+`BasePage` provides a clean DSL for common operations: navigation, locators (CSS, text, ARIA roles, test IDs), actions, waits, and assertions.
 
 ### Configurable via System Properties
 
 | Property | Default | Options |
 |----------|---------|---------|
 | `browser` | `CHROMIUM` | `CHROMIUM`, `FIREFOX`, `WEBKIT` |
-| `headless` | `false` | `true`, `false` |
+| `headless` | `true` | `true`, `false` |
 
 ## Getting Started
 
@@ -86,50 +107,42 @@ This means **every test class automatically gets browser lifecycle management** 
 ### Run Tests
 
 ```bash
-# Default: Chromium, headed mode
-./gradlew test
+# Default: Chromium, headless mode
+./gradlew clean test
 
-# Firefox in headless mode
-./gradlew test -Dbrowser=FIREFOX -Dheadless=true
+# Headed mode (see the browser)
+./gradlew test -Dheadless=false
 
-# WebKit
-./gradlew test -Dbrowser=WEBKIT
+# Firefox
+./gradlew test -Dbrowser=FIREFOX
+
+# WebKit in headed mode
+./gradlew test -Dbrowser=WEBKIT -Dheadless=false
 ```
 
-### Create a New Page Object
+### Allure Report
 
-```kotlin
-class DashboardPage(page: Page) : BasePage(page) {
-    override val url = "https://example.com/dashboard"
+```bash
+# Run tests and generate report
+./gradlew clean test
 
-    private val welcomeMessage = "[data-testid='welcome']"
-
-    fun verifyWelcome(username: String) {
-        shouldContainText(welcomeMessage, username)
-    }
-}
+# Open report in browser
+./gradlew allureServe
 ```
 
-### Write a Test
+### Test Coverage
 
-No `@ExtendWith` needed — the extension is auto-detected globally:
-
-```kotlin
-class LoginTest {
-
-    @Test
-    fun `user can log in successfully`(page: Page) {
-        val loginPage = LoginPage(page).open()
-        // ... test steps
-    }
-}
-```
+| Suite | Tests | Scenarios |
+|-------|-------|-----------|
+| LoginTest | 4 | Valid login, locked user, invalid credentials, empty credentials |
+| InventoryTest | 8 | Product count, add/remove cart, badge count, sorting (price, name), logout |
+| CheckoutTest | 5 | Single/multi product checkout, form validation, cart management, navigation |
 
 ## Roadmap
 
-- [ ] Allure reporting integration
-- [ ] CI/CD pipeline (GitLab CI / GitHub Actions)
-- [ ] Screenshot on failure
+- [x] Allure reporting integration
+- [x] Screenshot on failure
+- [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Environment-based config (dev / staging / prod)
 - [ ] API layer for backend testing
 - [ ] Docker support for parallel execution
@@ -139,4 +152,4 @@ class LoginTest {
 **Anuar Abitay** — Senior QA Automation Engineer
 
 - [GitHub](https://github.com/AnuarAbitay)
-- [LinkedIn](https://linkedin.com/in/anuar-abitay-automationqa)
+- [LinkedIn](https://www.linkedin.com/in/anuar-abitay-automationqa)
