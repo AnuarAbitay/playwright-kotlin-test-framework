@@ -10,7 +10,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging.logger
 import org.junit.jupiter.api.extension.*
 import java.util.Optional
 
-class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, ParameterResolver, TestWatcher {
+class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver, TestWatcher {
     private val logger = logger(this::class.java.name)
 
     companion object {
@@ -46,6 +46,11 @@ class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, ParameterReso
         val page = browserContext.newPage()
 
         context.getStore(NAMESPACE).put(PAGE_KEY, PageHolder(browserContext, page))
+    }
+
+    override fun afterEach(context: ExtensionContext) {
+        val pageHolder = context.getStore(NAMESPACE).remove(PAGE_KEY, PageHolder::class.java)
+        pageHolder?.close()
     }
 
     // --- TestWatcher ---

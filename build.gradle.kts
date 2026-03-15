@@ -30,6 +30,7 @@ allure {
     adapter {
         allureJavaVersion.set(allureVersion)
         aspectjWeaver.set(true)
+        autoconfigureListeners.set(false)
         frameworks {
             junit5 {
                 enabled.set(true)
@@ -40,6 +41,8 @@ allure {
 
 tasks.test {
     useJUnitPlatform()
+    systemProperty("headless", System.getProperty("headless", "true"))
+    systemProperty("browser", System.getProperty("browser", "CHROMIUM"))
 }
 kotlin {
     jvmToolchain(17)
