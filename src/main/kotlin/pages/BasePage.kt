@@ -13,12 +13,6 @@ abstract class BasePage(protected val page: Page) {
 
     // --- Navigation ---
 
-    fun <T : BasePage> T.open(): T {
-        page.navigate(url)
-        page.waitForLoadState()
-        return this
-    }
-
     fun currentUrl(): String = page.url()
 
     fun title(): String = page.title()
