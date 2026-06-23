@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.2.20"
-    id("io.qameta.allure") version "2.12.0"
+    kotlin("jvm") version "2.3.20"
+    id("io.qameta.allure") version "4.0.2"
 }
 
 group = "org.example"
@@ -10,30 +10,40 @@ repositories {
     mavenCentral()
 }
 
-val allureVersion = "2.29.0"
-val aspectJVersion = "1.9.22.1"
+val junitVersion = "5.14.4"
+val allureAdapterVersion = "2.35.2"
 
 dependencies {
     implementation("com.microsoft.playwright:playwright:1.55.0")
-    implementation("org.junit.jupiter:junit-jupiter:5.11.4")
+
+    implementation(platform("org.junit:junit-bom:$junitVersion"))
+    implementation("org.junit.jupiter:junit-jupiter-api")
+
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
-    implementation("ch.qos.logback:logback-classic:1.5.6")
+    runtimeOnly("ch.qos.logback:logback-classic:1.5.6")
 
     implementation("org.assertj:assertj-core:3.27.7")
 
-    testImplementation(platform("io.qameta.allure:allure-bom:$allureVersion"))
+    implementation(platform("io.qameta.allure:allure-bom:$allureAdapterVersion"))
+    implementation("io.qameta.allure:allure-java-commons")
     testImplementation("io.qameta.allure:allure-junit5")
 }
 
 allure {
+    version.set("3.9.0")
+
     adapter {
-        allureJavaVersion.set(allureVersion)
-        aspectjWeaver.set(true)
-        autoconfigureListeners.set(false)
+        allureJavaVersion.set(allureAdapterVersion)
+        aspectjWeaver.set(false)
+        autoconfigureListeners.set(true)
+
         frameworks {
             junit5 {
                 enabled.set(true)
+                autoconfigureListeners.set(true)
             }
         }
     }
@@ -41,9 +51,18 @@ allure {
 
 tasks.test {
     useJUnitPlatform()
-    systemProperty("headless", System.getProperty("headless", "true"))
-    systemProperty("browser", System.getProperty("browser", "CHROMIUM"))
+
+    systemProperty(
+        "headless",
+        System.getProperty("headless", "true")
+    )
+
+    systemProperty(
+        "browser",
+        System.getProperty("browser", "CHROMIUM")
+    )
 }
+
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(25)
 }

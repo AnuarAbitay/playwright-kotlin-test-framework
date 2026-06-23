@@ -4,18 +4,26 @@ import com.microsoft.playwright.Browser
 import com.microsoft.playwright.BrowserContext
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Page
-import com.microsoft.playwright.Page.ScreenshotOptions
 import com.microsoft.playwright.Playwright
+import com.microsoft.playwright.Page.ScreenshotOptions
 import config.TestConfig
 import context.PageHolder
 import context.PlaywrightHolder
-import data.enums.BrowserEngine.*
+import data.enums.BrowserEngine.CHROMIUM
+import data.enums.BrowserEngine.FIREFOX
+import data.enums.BrowserEngine.WEBKIT
 import io.github.oshai.kotlinlogging.KotlinLogging.logger
 import io.qameta.allure.Allure.addAttachment
-import org.junit.jupiter.api.extension.*
-import java.util.*
+import org.junit.jupiter.api.extension.AfterEachCallback
+import org.junit.jupiter.api.extension.AfterTestExecutionCallback
+import org.junit.jupiter.api.extension.BeforeAllCallback
+import org.junit.jupiter.api.extension.BeforeEachCallback
+import org.junit.jupiter.api.extension.ExtensionContext
+import org.junit.jupiter.api.extension.ParameterContext
+import org.junit.jupiter.api.extension.ParameterResolutionException
+import org.junit.jupiter.api.extension.ParameterResolver
 
-class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver, TestWatcher {
+class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver, AfterTestExecutionCallback {
     private val logger = logger(this::class.java.name)
 
     companion object {
@@ -32,17 +40,28 @@ class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCall
         val config = TestConfig
         val playwright = Playwright.create()
 
-        val launchOptions = BrowserType.LaunchOptions()
-            .setHeadless(config.headless)
+        try {
+            val launchOptions = BrowserType.LaunchOptions()
+                .setHeadless(config.headless)
 
-        val browser = when (config.browserType) {
-            CHROMIUM -> playwright.chromium().launch(launchOptions)
-            FIREFOX -> playwright.firefox().launch(launchOptions)
-            WEBKIT -> playwright.webkit().launch(launchOptions)
+            val browser = when (config.browserType) {
+                CHROMIUM -> playwright.chromium().launch(launchOptions)
+                FIREFOX -> playwright.firefox().launch(launchOptions)
+                WEBKIT -> playwright.webkit().launch(launchOptions)
+            }
+
+            context.getStore(NAMESPACE).put(
+                BROWSER_KEY,
+                PlaywrightHolder(playwright, browser)
+            )
+
+            logger.info {
+                "Browser created for class: ${context.displayName} [${config.browserType}]"
+            }
+        } catch (exception: Exception) {
+            runCatching { playwright.close() }
+            throw exception
         }
-
-        context.getStore(NAMESPACE).put(BROWSER_KEY, PlaywrightHolder(playwright, browser))
-        logger.info { "Browser created for class: ${context.displayName} [${config.browserType}]" }
     }
 
     override fun beforeEach(context: ExtensionContext) {
@@ -53,25 +72,37 @@ class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCall
         context.getStore(NAMESPACE).put(PAGE_KEY, PageHolder(browserContext, page))
     }
 
+    override fun afterTestExecution(context: ExtensionContext) {
+        if (context.executionException.isEmpty) {
+            return
+        }
+
+        val pageHolder = context.getStore(NAMESPACE)
+            .get(PAGE_KEY, PageHolder::class.java)
+            ?: return
+
+        runCatching {
+            val screenshot = pageHolder.page.screenshot(
+                ScreenshotOptions().setFullPage(true)
+            )
+
+            addAttachment(
+                "Screenshot on failure",
+                "image/png",
+                screenshot.inputStream(),
+                "png"
+            )
+        }.onFailure { exception ->
+            logger.error(exception) {
+                "Failed to capture screenshot for: ${context.displayName}"
+            }
+        }
+    }
+
     override fun afterEach(context: ExtensionContext) {
         val pageHolder = context.getStore(NAMESPACE).remove(PAGE_KEY, PageHolder::class.java)
         pageHolder?.close()
     }
-
-    // --- TestWatcher ---
-
-    override fun testFailed(context: ExtensionContext, cause: Throwable?) {
-        val pageHolder = context.getStore(NAMESPACE).get(PAGE_KEY, PageHolder::class.java)
-        pageHolder?.let {
-            val screenshot = it.page.screenshot(ScreenshotOptions().setFullPage(true))
-            addAttachment("Screenshot on failure", "image/png", screenshot.inputStream(), "png")
-        }
-        logger.warn { "Test failed: ${context.displayName} — ${cause?.message}" }
-    }
-
-    override fun testSuccessful(context: ExtensionContext) {}
-    override fun testAborted(context: ExtensionContext, cause: Throwable?) {}
-    override fun testDisabled(context: ExtensionContext, reason: Optional<String>?) {}
 
     // --- ParameterResolver ---
 
@@ -92,11 +123,21 @@ class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCall
 
     // --- Helpers ---
 
-    private fun getBrowserHolder(context: ExtensionContext): PlaywrightHolder =
-        context.parent.get().getStore(NAMESPACE).get(BROWSER_KEY, PlaywrightHolder::class.java)
+    private fun getBrowserHolder(context: ExtensionContext): PlaywrightHolder {
+        val classContext = context.parent.orElseThrow {
+            IllegalStateException("Class ExtensionContext was not found")
+        }
 
-    private fun getPageHolder(context: ExtensionContext): PageHolder =
-        context.getStore(NAMESPACE).get(PAGE_KEY, PageHolder::class.java)
+        return classContext.getStore(NAMESPACE)
+            .get(BROWSER_KEY, PlaywrightHolder::class.java)
+            ?: throw IllegalStateException("PlaywrightHolder was not initialized")
+    }
+
+    private fun getPageHolder(context: ExtensionContext): PageHolder {
+        return context.getStore(NAMESPACE)
+            .get(PAGE_KEY, PageHolder::class.java)
+            ?: throw IllegalStateException("PageHolder was not initialized")
+    }
 
     private val supportedTypes = setOf(
         Page::class.java,
