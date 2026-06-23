@@ -23,7 +23,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
-    runtimeOnly("ch.qos.logback:logback-classic:1.5.6")
+    runtimeOnly("ch.qos.logback:logback-classic:1.5.13")
 
     implementation("org.assertj:assertj-core:3.27.7")
 
