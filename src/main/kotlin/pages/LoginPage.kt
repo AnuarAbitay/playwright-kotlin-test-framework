@@ -3,7 +3,7 @@ package pages
 import com.microsoft.playwright.Page
 
 class LoginPage(page: Page) : BasePage(page) {
-    override val url = "https://www.saucedemo.com/"
+    override val url = "/"
 
     private val usernameInput = "[data-test='username']"
     private val passwordInput = "[data-test='password']"

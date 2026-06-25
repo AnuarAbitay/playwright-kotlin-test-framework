@@ -1,6 +1,7 @@
 package extensions
 
 import com.microsoft.playwright.Browser
+import com.microsoft.playwright.Browser.NewContextOptions
 import com.microsoft.playwright.BrowserContext
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Page
@@ -23,7 +24,8 @@ import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolutionException
 import org.junit.jupiter.api.extension.ParameterResolver
 
-class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver, AfterTestExecutionCallback {
+class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver,
+    AfterTestExecutionCallback {
     private val logger = logger(this::class.java.name)
 
     companion object {
@@ -66,7 +68,7 @@ class PlaywrightExtension : BeforeAllCallback, BeforeEachCallback, AfterEachCall
 
     override fun beforeEach(context: ExtensionContext) {
         val browser = getBrowserHolder(context).browser
-        val browserContext = browser.newContext()
+        val browserContext = browser.newContext(NewContextOptions().setBaseURL(TestConfig.baseUrl))
         val page = browserContext.newPage()
 
         context.getStore(NAMESPACE).put(PAGE_KEY, PageHolder(browserContext, page))

@@ -5,7 +5,7 @@ import com.microsoft.playwright.Page
 import com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat
 
 class CartPage(page: Page) : BasePage(page) {
-    override val url = "https://www.saucedemo.com/cart.html"
+    override val url = "/cart.html"
 
     private val cartItems = "[data-test='inventory-item']"
     private val checkoutButton = "[data-test='checkout']"

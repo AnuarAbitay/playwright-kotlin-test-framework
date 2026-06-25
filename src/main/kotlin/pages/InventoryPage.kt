@@ -5,7 +5,7 @@ import com.microsoft.playwright.Page
 import com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat
 
 class InventoryPage(page: Page) : BasePage(page) {
-    override val url = "https://www.saucedemo.com/inventory.html"
+    override val url = "/inventory.html"
 
     private val inventoryContainer = "[data-test='inventory-container']"
     private val inventoryItems = "[data-test='inventory-item']"

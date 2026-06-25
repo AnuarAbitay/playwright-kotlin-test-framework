@@ -61,6 +61,11 @@ tasks.test {
         "browser",
         System.getProperty("browser", "CHROMIUM")
     )
+
+    systemProperty(
+        "baseUrl",
+        System.getProperty("baseUrl", "https://www.saucedemo.com")
+    )
 }
 
 kotlin {

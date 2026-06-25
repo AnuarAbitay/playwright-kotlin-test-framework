@@ -3,7 +3,7 @@ package pages
 import com.microsoft.playwright.Page
 
 class CheckoutStepOnePage(page: Page) : BasePage(page) {
-    override val url = "https://www.saucedemo.com/checkout-step-one.html"
+    override val url = "/checkout-step-one.html"
 
     private val firstNameInput = "[data-test='firstName']"
     private val lastNameInput = "[data-test='lastName']"

@@ -11,4 +11,7 @@ object TestConfig {
         get() = valueOf(
             System.getProperty("browser", "CHROMIUM").uppercase()
         )
+
+    val baseUrl: String
+        get() = System.getProperty("baseUrl", "https://www.saucedemo.com").trimEnd('/')
 }

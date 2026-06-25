@@ -3,7 +3,7 @@ package pages
 import com.microsoft.playwright.Page
 
 class CheckoutCompletePage(page: Page) : BasePage(page) {
-    override val url = "https://www.saucedemo.com/checkout-complete.html"
+    override val url = "/checkout-complete.html"
 
     private val completeHeader = "[data-test='complete-header']"
     private val backHomeButton = "[data-test='back-to-products']"
