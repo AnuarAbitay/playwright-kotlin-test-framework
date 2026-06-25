@@ -5,7 +5,7 @@ import data.enums.BrowserEngine.valueOf
 
 object TestConfig {
     val headless: Boolean
-        get() = System.getProperty("headless", "false").toBoolean()
+        get() = System.getProperty("headless", "true").toBoolean()
 
     val browserType: BrowserEngine
         get() = valueOf(

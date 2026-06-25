@@ -11,6 +11,12 @@ class CheckoutStepOnePage(page: Page) : BasePage(page) {
     private val continueButton = "[data-test='continue']"
     private val errorMessage = "[data-test='error']"
 
+    fun shouldBeLoaded(): CheckoutStepOnePage {
+        shouldHaveUrl("checkout-step-one")
+        shouldBeVisible(firstNameInput)
+        return this
+    }
+
     fun fillForm(firstName: String, lastName: String, postalCode: String): CheckoutStepOnePage {
         fill(firstNameInput, firstName)
         fill(lastNameInput, lastName)
@@ -20,7 +26,7 @@ class CheckoutStepOnePage(page: Page) : BasePage(page) {
 
     fun continueToOverview(): CheckoutStepTwoPage {
         click(continueButton)
-        return CheckoutStepTwoPage(page)
+        return CheckoutStepTwoPage(page).shouldBeLoaded()
     }
 
     fun continueExpectingError(): CheckoutStepOnePage {

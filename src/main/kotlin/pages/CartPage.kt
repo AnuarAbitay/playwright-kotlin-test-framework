@@ -8,7 +8,14 @@ class CartPage(page: Page) : BasePage(page) {
     override val url = "/cart.html"
 
     private val cartItems = "[data-test='inventory-item']"
+    private val cartList = "[data-test='cart-list']"
     private val checkoutButton = "[data-test='checkout']"
+
+    fun shouldBeLoaded(): CartPage {
+        shouldHaveUrl("cart")
+        shouldBeVisible(cartList)
+        return this
+    }
 
     fun removeItemByName(productName: String): CartPage {
         val item = page.locator(cartItems)
@@ -19,7 +26,7 @@ class CartPage(page: Page) : BasePage(page) {
 
     fun checkout(): CheckoutStepOnePage {
         click(checkoutButton)
-        return CheckoutStepOnePage(page)
+        return CheckoutStepOnePage(page).shouldBeLoaded()
     }
 
     fun shouldHaveItemCount(expected: Int): CartPage {

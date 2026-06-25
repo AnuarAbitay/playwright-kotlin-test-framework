@@ -7,8 +7,14 @@ class CheckoutStepTwoPage(page: Page) : BasePage(page) {
 
     private val finishButton = "[data-test='finish']"
 
+    fun shouldBeLoaded(): CheckoutStepTwoPage {
+        shouldHaveUrl("checkout-step-two")
+        shouldBeVisible(finishButton)
+        return this
+    }
+
     fun finish(): CheckoutCompletePage {
         click(finishButton)
-        return CheckoutCompletePage(page)
+        return CheckoutCompletePage(page).shouldBeLoaded()
     }
 }

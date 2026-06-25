@@ -8,13 +8,19 @@ class CheckoutCompletePage(page: Page) : BasePage(page) {
     private val completeHeader = "[data-test='complete-header']"
     private val backHomeButton = "[data-test='back-to-products']"
 
-    fun shouldShowOrderConfirmation() {
-        shouldHaveText(completeHeader, "Thank you for your order!")
+    fun shouldBeLoaded(): CheckoutCompletePage {
         shouldHaveUrl("checkout-complete")
+        shouldBeVisible(completeHeader)
+        return this
+    }
+
+    fun shouldShowOrderConfirmation() {
+        shouldBeLoaded()
+        shouldHaveText(completeHeader, "Thank you for your order!")
     }
 
     fun backToProducts(): InventoryPage {
         click(backHomeButton)
-        return InventoryPage(page)
+        return InventoryPage(page).shouldBeLoaded()
     }
 }

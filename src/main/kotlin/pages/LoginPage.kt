@@ -20,7 +20,8 @@ class LoginPage(page: Page) : BasePage(page) {
         fill(usernameInput, username)
         fill(passwordInput, password)
         click(loginButton)
-        return InventoryPage(page)
+
+        return InventoryPage(page).shouldBeLoaded()
     }
 
     fun loginExpectingError(username: String, password: String): LoginPage {

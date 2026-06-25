@@ -13,9 +13,10 @@ class InventoryPage(page: Page) : BasePage(page) {
     private val cartLink = "[data-test='shopping-cart-link']"
     private val sortDropdown = "[data-test='product-sort-container']"
 
-    fun shouldBeLoaded() {
-        shouldBeVisible(inventoryContainer)
+    fun shouldBeLoaded(): InventoryPage {
         shouldHaveUrl("inventory")
+        shouldBeVisible(inventoryContainer)
+        return this
     }
 
     fun addProductToCartByName(productName: String): InventoryPage {
@@ -34,7 +35,7 @@ class InventoryPage(page: Page) : BasePage(page) {
 
     fun goToCart(): CartPage {
         click(cartLink)
-        return CartPage(page)
+        return CartPage(page).shouldBeLoaded()
     }
 
     fun sortBy(value: String): InventoryPage {
