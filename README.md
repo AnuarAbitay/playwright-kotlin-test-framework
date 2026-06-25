@@ -1,155 +1,215 @@
 # Playwright Kotlin Test Framework
 
-A lightweight, extensible Web UI test automation framework built with **Kotlin**, **Playwright**, and **JUnit 5**.
+A lightweight Web UI test automation framework built with **Kotlin**, **Playwright**, **JUnit 5**, and **Allure**.
 
-Designed for clean architecture, easy maintenance, and fast parallel execution.
+The project demonstrates Page Object architecture, isolated browser contexts, JUnit 5 lifecycle management, parameter injection, and automatic screenshots on test failure.
 
 ## Tech Stack
 
-| Tool | Purpose |
-|------|---------|
-| Kotlin 2.2 | Primary language |
-| Playwright 1.55 | Browser automation |
-| JUnit 5.11 | Test runner & lifecycle |
-| Allure 2.29 | Test reporting |
-| AssertJ 3.27 | Fluent assertions |
-| Kotlin-logging + Logback | Structured logging |
-| Gradle (Kotlin DSL) | Build system |
-| Java 17 | JVM target |
+| Tool                 | Version | Purpose                              |
+|----------------------|--------:|--------------------------------------|
+| Kotlin               |  2.3.20 | Primary programming language         |
+| Java                 |      24 | JVM toolchain                        |
+| Playwright           |  1.55.0 | Browser automation                   |
+| JUnit                |  5.14.4 | Test runner and lifecycle management |
+| Allure Java          |  2.35.2 | Test reporting integration           |
+| Allure Gradle Plugin |   4.0.2 | Report generation                    |
+| AssertJ              |  3.27.7 | Fluent assertions                    |
+| Kotlin Logging       |   7.0.3 | Logging facade                       |
+| Logback              |  1.5.13 | Logging implementation               |
+| Gradle               |   9.5.1 | Build system with Kotlin DSL         |
 
-## Architecture
+## Tested Application
 
+The tests cover the public demo application:
+
+```text
+https://www.saucedemo.com
 ```
+
+## Project Structure
+
+```text
 src/
 ├── main/kotlin/
 │   ├── config/
-│   │   └── TestConfig.kt              # Centralized config via system properties
+│   │   └── TestConfig.kt
 │   ├── context/
-│   │   ├── PlaywrightHolder.kt        # Class-level: Playwright + Browser lifecycle
-│   │   └── PageHolder.kt              # Method-level: BrowserContext + Page lifecycle
-│   ├── data/
-│   │   └── enums/
-│   │       └── BrowserEngine.kt       # Supported browsers: Chromium, Firefox, WebKit
+│   │   ├── PageHolder.kt
+│   │   └── PlaywrightHolder.kt
+│   ├── data/enums/
+│   │   └── BrowserEngine.kt
 │   ├── extensions/
-│   │   └── PlaywrightExtension.kt     # JUnit 5 extension — full lifecycle management
+│   │   └── PlaywrightExtension.kt
 │   └── pages/
-│       ├── BasePage.kt                # Base page with reusable actions & assertions
-│       ├── LoginPage.kt              # Login page
-│       ├── InventoryPage.kt          # Product catalog page
-│       ├── CartPage.kt               # Shopping cart page
-│       ├── CheckoutStepOnePage.kt    # Checkout form page
-│       ├── CheckoutStepTwoPage.kt    # Checkout overview page
-│       └── CheckoutCompletePage.kt   # Order confirmation page
+│       ├── BasePage.kt
+│       ├── CartPage.kt
+│       ├── CheckoutCompletePage.kt
+│       ├── CheckoutStepOnePage.kt
+│       ├── CheckoutStepTwoPage.kt
+│       ├── InventoryPage.kt
+│       └── LoginPage.kt
 └── test/
     ├── kotlin/
-    │   ├── LoginTest.kt               # Login scenarios (4 tests)
-    │   ├── InventoryTest.kt           # Catalog & cart scenarios (8 tests)
-    │   └── CheckoutTest.kt            # E2E checkout scenarios (5 tests)
+    │   ├── CheckoutTest.kt
+    │   ├── InventoryTest.kt
+    │   └── LoginTest.kt
     └── resources/
         ├── META-INF/services/
-        │   └── ...Extension            # Auto-registration via ServiceLoader
-        ├── allure.properties           # Allure results directory config
-        └── junit-platform.properties   # Enables extension auto-detection
+        │   └── org.junit.jupiter.api.extension.Extension
+        ├── allure.properties
+        └── junit-platform.properties
 ```
 
-## Key Design Decisions
+## Architecture
 
-### Global Extension Auto-Detection
+### Page Object Model
 
-The framework uses JUnit 5's **ServiceLoader** mechanism instead of `@ExtendWith` annotations:
-
-- `junit-platform.properties` enables `junit.jupiter.extensions.autodetection.enabled = true`
-- `META-INF/services/org.junit.jupiter.api.extension.Extension` registers `PlaywrightExtension` globally
-
-Every test class automatically gets browser lifecycle management — no boilerplate annotations needed.
-
-### Two-Level Lifecycle Management
-
-`PlaywrightExtension` implements `BeforeAllCallback`, `BeforeEachCallback`, `AfterEachCallback`, `ParameterResolver`, and `TestWatcher`:
-
-- **Class-level** (`PlaywrightHolder`) — Playwright instance + Browser created once per test class, stored in JUnit's `ExtensionContext.Store`, auto-closed via `AutoCloseable`
-- **Method-level** (`PageHolder`) — fresh `BrowserContext` + `Page` for each test, ensuring full isolation. Explicitly closed in `afterEach` for immediate resource cleanup
-- **Parameter injection** — tests receive `Page`, `BrowserContext`, or `Browser` directly as method parameters
-- **Screenshot on failure** — automatic full-page screenshot attached to Allure report when a test fails
-
-### Page Object Pattern with Fluent Assertions
-
-All assertions are encapsulated inside Page Objects — tests contain zero `assertThat` calls:
+Page-specific actions and assertions are encapsulated inside Page Object classes. Tests describe user scenarios without directly working with selectors.
 
 ```kotlin
-loginAsStandardUser(page)
+LoginPage(page)
+    .open()
+    .login("standard_user", "secret_sauce")
     .addProductToCartByName("Sauce Labs Backpack")
     .goToCart()
     .shouldHaveItemCount(1)
-    .checkout()
-    .fillForm("John", "Doe", "12345")
-    .continueToOverview()
-    .finish()
-    .shouldShowOrderConfirmation()
 ```
 
-`BasePage` provides a clean DSL for common operations: navigation, locators (CSS, text, ARIA roles, test IDs), actions, waits, and assertions.
+### JUnit 5 Extension
 
-### Configurable via System Properties
+`PlaywrightExtension` manages the Playwright lifecycle and is registered globally through JUnit ServiceLoader.
 
-| Property | Default | Options |
-|----------|---------|---------|
-| `browser` | `CHROMIUM` | `CHROMIUM`, `FIREFOX`, `WEBKIT` |
-| `headless` | `true` | `true`, `false` |
+The extension provides:
 
-## Getting Started
+* one `Playwright` and `Browser` instance per test class;
+* a new `BrowserContext` and `Page` for every test;
+* automatic injection of `Page`, `BrowserContext`, and `Browser` into test methods;
+* automatic resource cleanup;
+* a full-page screenshot attached to Allure when a test fails.
 
-### Prerequisites
+### Test Isolation
 
-- JDK 17+
-- Gradle 8+
+Every test receives a separate `BrowserContext`. Cookies, local storage, and session state are therefore isolated between test cases.
 
-### Run Tests
+## Configuration
+
+The framework is configured through JVM system properties.
+
+| Property   | Gradle default              | Supported values                |
+|------------|-----------------------------|---------------------------------|
+| `browser`  | `CHROMIUM`                  | `CHROMIUM`, `FIREFOX`, `WEBKIT` |
+| `headless` | `true`                      | `true`, `false`                 |
+| `baseUrl`  | `https://www.saucedemo.com` | Any valid application URL       |
+
+## Prerequisites
+
+* JDK 24
+* Git
+
+The project includes Gradle Wrapper, so a separate Gradle installation is not required.
+
+## Running Tests
+
+### Run all tests
 
 ```bash
-# Default: Chromium, headless mode
 ./gradlew clean test
-
-# Headed mode (see the browser)
-./gradlew test -Dheadless=false
-
-# Firefox
-./gradlew test -Dbrowser=FIREFOX
-
-# WebKit in headed mode
-./gradlew test -Dbrowser=WEBKIT -Dheadless=false
 ```
 
-### Allure Report
+### Run in headed mode
 
 ```bash
-# Run tests and generate report
-./gradlew clean test
-
-# Open report in browser
-./gradlew allureServe
+./gradlew clean test -Dheadless=false
 ```
 
-### Test Coverage
+### Run in Firefox
 
-| Suite | Tests | Scenarios |
-|-------|-------|-----------|
-| LoginTest | 4 | Valid login, locked user, invalid credentials, empty credentials |
-| InventoryTest | 8 | Product count, add/remove cart, badge count, sorting (price, name), logout |
-| CheckoutTest | 5 | Single/multi product checkout, form validation, cart management, navigation |
+```bash
+./gradlew clean test -Dbrowser=FIREFOX
+```
 
-## Roadmap
+### Run in WebKit
 
-- [x] Allure reporting integration
-- [x] Screenshot on failure
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Environment-based config (dev / staging / prod)
-- [ ] API layer for backend testing
-- [ ] Docker support for parallel execution
+```bash
+./gradlew clean test -Dbrowser=WEBKIT
+```
+
+### Run against another environment
+
+```bash
+./gradlew clean test -DbaseUrl=https://example.com
+```
+
+### Combine parameters
+
+```bash
+./gradlew clean test \
+  -Dbrowser=FIREFOX \
+  -Dheadless=false \
+  -DbaseUrl=https://www.saucedemo.com
+```
+
+### Run a single test class
+
+```bash
+./gradlew test --tests LoginTest
+```
+
+### Run a single test method
+
+```bash
+./gradlew test --tests LoginTest.successfulLogin
+```
+
+## Allure Report
+
+Test results are stored in:
+
+```text
+build/allure-results
+```
+
+Run the tests and open the Allure report:
+
+```bash
+./gradlew clean test allureServe
+```
+
+Generate the report without opening it:
+
+```bash
+./gradlew allureReport
+```
+
+When a test fails, the framework automatically attaches a full-page screenshot to the report.
+
+## Test Coverage
+
+The project currently contains **15 UI tests**.
+
+| Test suite      | Tests | Covered scenarios                                                                                       |
+|-----------------|------:|---------------------------------------------------------------------------------------------------------|
+| `LoginTest`     |     4 | Successful login, locked user, invalid credentials, empty credentials                                   |
+| `InventoryTest` |     6 | Product count, adding and removing products, cart badge, price sorting, name sorting                    |
+| `CheckoutTest`  |     5 | Single-product checkout, multi-product checkout, form validation, cart item removal, return to products |
+
+## Supported Browsers
+
+* Chromium
+* Firefox
+* WebKit
+
+Tests run sequentially by default. Each test method receives an isolated browser context and page.
+
+## Logging
+
+The project uses Kotlin Logging with Logback. Browser lifecycle events and resource cleanup failures are written to the test logs.
 
 ## Author
 
-**Anuar Abitay** — Senior QA Automation Engineer
+**Anuar Abitay**
+Senior QA Automation Engineer
 
-- [GitHub](https://github.com/AnuarAbitay)
-- [LinkedIn](https://www.linkedin.com/in/anuar-abitay-automationqa)
+* GitHub: [AnuarAbitay](https://github.com/AnuarAbitay)
+* LinkedIn: [anuar-abitay-automationqa](https://www.linkedin.com/in/anuar-abitay-automationqa)
